@@ -41,6 +41,9 @@ pub mod xbm;
 #[cfg(feature = "xpm")]
 pub mod xpm;
 
+#[cfg(feature = "pat")]
+pub mod pat;
+
 #[allow(unused_imports)]
 use image::hooks::{register_decoding_hook, register_format_detection_hook};
 
@@ -85,6 +88,22 @@ pub fn register() {
                 )?))
             }),
         );
+
+        #[cfg(feature = "pat")]
+        {
+            image::hooks::register_decoding_hook("pat".into(), Box::new(|r| {
+                use image::ImageDecoder;
+
+                use crate::pat::convert_error;
+
+                let decoder = pat::PatDecoder::new(r).map_err(convert_error)?;
+
+                Ok(Box::new(decoder) as Box<dyn ImageDecoder>)
+            }));
+            
+            image::hooks::register_format_detection_hook("pat".into(), &[0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x01], Some(&[0x00,0x00,0x00,0x00,0xFF,0xFF,0xFF,0xFF]));
+
+        }
 
         #[cfg(feature = "otb")]
         image::hooks::register_decoding_hook(

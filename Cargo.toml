@@ -10,7 +10,7 @@ repository = "https://github.com/image-rs/image-extras"
 include = ["src", "LICENSE-APACHE", "LICENSE-MIT", "README.md"]
 
 [features]
-default = ["dds", "icns", "ora", "otb", "pcx", "sgi", "xbm", "xpm", "wbmp"]
+default = ["dds", "icns", "ora", "otb", "pcx", "sgi", "xbm", "xpm", "wbmp", "pat"]
 
 # Each feature below is the file extension for the file format encoder/decoder
 # it enables.
@@ -24,6 +24,7 @@ wbmp = ["dep:wbmp"]
 xbm = []
 xpm = []
 
+pat = []
 
 [dependencies]
 image = { version = "0.25.8", default-features = false }
