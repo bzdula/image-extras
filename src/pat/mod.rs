@@ -1,9 +1,11 @@
 use std::io::{BufRead, Seek, SeekFrom};
 
 use image::{ColorType, ImageDecoder, ImageError, ImageResult, error::{DecodingError, ImageFormatHint}};
+use little_exif::{metadata::Metadata, rational::uR64};
 
 use crate::pat::error::PatError;
 
+use little_exif::exif_tag::ExifTag;
 
 mod error;
 
@@ -12,7 +14,10 @@ pub struct PatDecoder<R> {
     width: u32, 
     height: u32,
     color_palette: Vec<[u8; 3]>,
-    limit: u64
+    limit: u64,
+    metadata: Metadata,
+    // x_resolution: u32, 
+    // y_resolution: u32,
 }
 
 impl<R: BufRead + Seek> PatDecoder<R> {
@@ -28,6 +33,37 @@ impl<R: BufRead + Seek> PatDecoder<R> {
         reader.read_exact(&mut wh_buf)?;
         let height = u16::from_be_bytes([wh_buf[0], wh_buf[1]]) as u32;
 
+        reader.seek(SeekFrom::Start(0x10))?;
+        reader.read_exact(&mut wh_buf)?;
+        let first_chunk = u16::from_be_bytes([wh_buf[0], wh_buf[1]]) as u32;
+        reader.read_exact(&mut wh_buf)?;
+        let second_chunk = u16::from_be_bytes([wh_buf[0], wh_buf[1]]) as u32;
+
+        let (x_resolution, y_resolution) = if first_chunk == 0 {
+            (second_chunk / 100, second_chunk - 1000)
+        } else {
+            (first_chunk, second_chunk)
+        };
+
+        let xres_rat = uR64 {
+            nominator: x_resolution,
+            denominator: 1,
+        };
+
+        let yres_rat = uR64 {
+            nominator: y_resolution,
+            denominator: 1
+        };
+
+
+
+        let mut metadata = Metadata::new();
+
+        metadata.set_tag(ExifTag::XResolution(vec![xres_rat]));
+        metadata.set_tag(ExifTag::YResolution(vec![yres_rat]));
+
+        
+
         let mut color_palette = Vec::with_capacity(256);
         let mut color_data = [0u8; 0x300];
 
@@ -42,10 +78,12 @@ impl<R: BufRead + Seek> PatDecoder<R> {
         // let color_palette = palette;
         let limit = 0x600 + width as u64 * height as u64 - 1;
 
-        Ok(Self { reader, width, height, color_palette, limit })
+        Ok(Self { reader, width, height, color_palette, limit, metadata})
 
         
     }
+
+    
 
     fn read_pat_image(&mut self, buf: &mut [u8]) -> Result<(), PatError> {
         let mut pos = self.reader.seek(SeekFrom::Start(0x600))?;
@@ -72,7 +110,7 @@ impl<R: BufRead + Seek> PatDecoder<R> {
             index = (pos as usize - 0x600) * 3;
             
         }
-
+        
 
         Ok(())
 
@@ -84,6 +122,11 @@ impl<R: BufRead + Seek> PatDecoder<R> {
 impl<R: BufRead + Seek> ImageDecoder for PatDecoder<R> {
     fn dimensions(&self) -> (u32, u32) {
         (self.width, self.height)
+    }
+
+    fn exif_metadata(&mut self) -> ImageResult<Option<Vec<u8>>> {
+        let encoded = self.metadata.encode()?;
+        Ok(Some(encoded))
     }
 
     fn color_type(&self) -> image::ColorType {
