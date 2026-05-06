@@ -24,8 +24,7 @@ wbmp = ["dep:wbmp"]
 xbm = []
 xpm = []
 
-pat = ["dep:little_exif"]
-little_exif = ["dep:little_exif"]
+pat = []
 
 [dependencies]
 image = { version = "0.25.8", default-features = false }
@@ -38,7 +37,6 @@ pcx = { version = "0.2.4", optional = true }
 png = { version = "0.18.0", default-features = false, optional = true }
 wbmp = { version = "0.1.2", optional = true }
 zip = { version = "5.1.1", default-features = false, features = ["deflate"], optional = true }
-little_exif = { version = "0.6.23", optional = true }
 
 [dev-dependencies]
 image = { version = "0.25.8", default-features = false, features = ["png", "tiff"] }
